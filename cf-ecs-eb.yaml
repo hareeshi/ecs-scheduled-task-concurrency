@@ -6,7 +6,7 @@ Parameters:
     Description: Enter ARN of the ECS Cluster
   TaskFamily:
     Type: String
-    Description: Enter the Task Definition Family (ARN, without the version)  
+    Description: Enter the Task Definition Family (Name of the task definition)
   TaskDefArn:
     Type: String
     Description: Enter the Task Definition ARN
@@ -28,6 +28,9 @@ Parameters:
   StateMachineS3Key:
     Type: String
     Description: Enter state machine definition file name
+  ConcurrencyLimit:
+    Type: Number
+    Description: Enter the maximum number of concurrent ECS tasks
 Resources:
   ECSStateMachine:
     Type: AWS::StepFunctions::StateMachine
@@ -53,6 +56,8 @@ Resources:
           Ref: SecurityGroups
         Subnets:
           Ref: Subnets
+        ConcurrencyLimit:
+          Ref: ConcurrencyLimit
       DefinitionS3Location:
         Bucket: 
           Ref: StateMachineS3Bucket

@@ -15,7 +15,7 @@
 			"Type": "Choice",
 			"Choices": [{
 				"Not": {
-					"Variable": "$.TaskArns[0]",
+					"Variable": "$.TaskArns[${ConcurrencyLimit}-1]",
 					"IsPresent": true
 				},
 				"Next": "ECS RunTask"
