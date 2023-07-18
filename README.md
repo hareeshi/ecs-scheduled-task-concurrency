@@ -10,9 +10,17 @@ The repository containers the CloudFormation template and State Machine Definiti
 # How to Deploy the Solution
 
 1. Upload the State Machine Definition to an S3 bucket.
-2. Edit the Cloudformation template to change the event schedule, if needed. (You can also configure this as a parameter for the CF stack)
-3. Create a CloudFormation stack with the template. Provide relevant inputs, while creating the stack. You will also be providing the task concurrency limit as part of CF parameters
+2. Edit the Cloudformation template to change the event schedule and concurrency limit, if needed.
+3. Review the IAM policies defined in the CF template and see you can further lock it down to specific resources
+4. Create a CloudFormation stack with the template. Provide relevant inputs, while creating the stack. 
+
+# Todo
+List of features to add
+1. Add Concurrency Limit as a CF parameter
+2. Add a configure wait and retry RunTask flow to the state machine
+3. Tighten the IAM roles  
 
 # Alternate Approaches
 
 This solution focuses on how to achieve concurrency limits with ECS Scheduled Task feature. You can also achieve the same using AWS Batch, which is a fully managed service for running batch workloads. AWS Batch, behind the scenes, uses Amazon ECS for job orchestration.
+
