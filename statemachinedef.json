@@ -1,0 +1,47 @@
+{
+	"StartAt": "ListTasks",
+	"States": {
+		"ListTasks": {
+			"Type": "Task",
+			"Parameters": {
+				"Cluster": "${ClusterArn}",
+				"DesiredStatus": "RUNNING",
+				"Family": "${TaskFamily}"
+			},
+			"Resource": "arn:aws:states:::aws-sdk:ecs:listTasks",
+			"Next": "Choice"
+		},
+		"Choice": {
+			"Type": "Choice",
+			"Choices": [{
+				"Not": {
+					"Variable": "$.TaskArns[0]",
+					"IsPresent": true
+				},
+				"Next": "ECS RunTask"
+			}],
+			"Default": "Pass"
+		},
+		"ECS RunTask": {
+			"Type": "Task",
+			"Resource": "arn:aws:states:::ecs:runTask",
+			"Parameters": {
+				"LaunchType": "FARGATE",
+				"Cluster": "${ClusterArn}",
+				"TaskDefinition": "${TaskDefArn}",
+				"NetworkConfiguration": {
+					"AwsvpcConfiguration": {
+						"AssignPublicIp": "${AssignPublicIp}",
+						"SecurityGroups": ["${SecurityGroups}"],
+						"Subnets": ["${Subnets}"]
+					}
+				}
+			},
+			"End": true
+		},
+		"Pass": {
+			"Type": "Pass",
+			"End": true
+		}
+	}
+}

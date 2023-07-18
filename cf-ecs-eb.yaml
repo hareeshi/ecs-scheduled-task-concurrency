@@ -1,0 +1,153 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: EventBridge to Invoke Step Functions Periodically. The Step Function runs an ECS Task, respecting the concurrency limit
+Parameters:
+  ClusterArn: 
+    Type: String
+    Description: Enter ARN of the ECS Cluster
+  TaskFamily:
+    Type: String
+    Description: Enter the Task Definition Family (ARN, without the version)  
+  TaskDefArn:
+    Type: String
+    Description: Enter the Task Definition ARN
+  AssignPublicIp:
+    Type: String
+    AllowedValues:
+      - ENABLED
+      - DISABLED
+    Description: Does the task need a public IP?
+  SecurityGroups:
+    Type: String
+    Description: Enter the task security group as a string
+  Subnets:
+    Type: String
+    Description: Enter the subnet for the task
+  StateMachineS3Bucket:
+    Type: String
+    Description: Enter the s3 bucket where state machine definition is stored
+  StateMachineS3Key:
+    Type: String
+    Description: Enter state machine definition file name
+Resources:
+  ECSStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: ECSStateMachine
+      StateMachineType: EXPRESS
+      LoggingConfiguration:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+             LogGroupArn: !GetAtt EcsStateMachineLogGroup.Arn
+        IncludeExecutionData: True
+        Level: ALL
+      DefinitionSubstitutions:
+        ClusterArn: 
+          Ref: ClusterArn
+        TaskFamily:
+          Ref: TaskFamily
+        TaskDefArn:
+          Ref: TaskDefArn
+        AssignPublicIp:
+          Ref: AssignPublicIp
+        SecurityGroups:
+          Ref: SecurityGroups
+        Subnets:
+          Ref: Subnets
+      DefinitionS3Location:
+        Bucket: 
+          Ref: StateMachineS3Bucket
+        Key: 
+          Ref: StateMachineS3Key
+      RoleArn: 
+        Fn::GetAtt: 
+          - 'StateMachineExecutionRole'
+          - 'Arn'
+  StateMachineExecutionRole: 
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub states.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: CloudWatchLogsDeliveryFullAccessPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'states:StartExecution'
+                  - 'logs:CreateLogDelivery'
+                  - 'logs:GetLogDelivery'
+                  - 'logs:UpdateLogDelivery'
+                  - 'logs:DeleteLogDelivery'
+                  - 'logs:ListLogDeliveries'
+                  - 'logs:PutResourcePolicy'
+                  - 'logs:DescribeResourcePolicies'
+                  - 'logs:DescribeLogGroups'
+                Resource: '*'
+        - PolicyName: InvokeStateMachineRolePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'ecs:ListTasks'
+                  - 'ecs:RunTask'
+                Resource: '*'
+              - Effect: "Allow"
+                Action:
+                  - "iam:PassRole"
+                Resource: '*'
+  EcsStateMachineLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: /aws/stepfunction/ECSStateMachine-loggroup
+      RetentionInDays: 14
+  ScheduledRule: 
+    Type: AWS::Events::Rule
+    Properties: 
+      Description: "ScheduledRuletoInvokeStepFunctions"
+      ScheduleExpression: "rate(60 minutes)"
+      State: "ENABLED"
+      Targets: 
+        - 
+          Arn: 
+            Fn::GetAtt: 
+              - "ECSStateMachine"
+              - "Arn"
+          Id: "ECSStateMachine"
+          RoleArn:  
+            Fn::GetAtt: 
+              - 'InvokeStateMachineIamRole'
+              - 'Arn'
+  InvokeStateMachineIamRole: 
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: !Sub events.amazonaws.com
+            Action: 'sts:AssumeRole'
+      Policies:
+        - PolicyName: InvokeStateMachineRolePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'states:StartExecution'
+                Resource:
+                  - 
+                    Fn::GetAtt: 
+                      - 'ECSStateMachine'
+                      - 'Arn'
+Outputs:
+  StateMachineArn:
+    Value:
+      Ref: ECSStateMachine
