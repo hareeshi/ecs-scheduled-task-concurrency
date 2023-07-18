@@ -15,7 +15,7 @@ The repository containers the CloudFormation template and State Machine Definiti
 4. Create a CloudFormation stack with the template. Provide relevant inputs, while creating the stack. 
 
 # Todo
-List of features to add
+List of features to improve the solution - my todo list:
 1. Add Concurrency Limit as a CF parameter
 2. Add a configure wait and retry RunTask flow to the state machine
 3. Tighten the IAM roles  
